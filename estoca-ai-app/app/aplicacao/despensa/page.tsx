@@ -1,7 +1,7 @@
 export default function Page() {
     return (
       <div>
-        <h1>Tela da despensa</h1>
+        <h1>Página da despensa</h1>
       </div>
     );
   }
