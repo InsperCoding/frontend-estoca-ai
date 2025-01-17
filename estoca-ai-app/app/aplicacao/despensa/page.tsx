@@ -58,7 +58,50 @@ export default function Page() {
           )}
 
           {/* Esses itens foram colocados aqui apenas para visualizar, quando o app tiver funcional tirar eles e deixar apenas a logica de cima */}
-         
+          <li key={1}>
+            <ItemDespensa
+              Id={1}
+              Img={'/diversas.webp'}
+              Unidade={'kg'}
+              Qntd={6}
+            />
+          </li>
+          <li key={1}>
+            <ItemDespensa
+              Id={1}
+              Img={'/diversas.webp'}
+              Unidade={'kg'}
+              Qntd={6}
+            />
+          </li>
+
+          <li key={1}>
+            <ItemDespensa
+              Id={1}
+              Img={'/diversas.webp'}
+              Unidade={'kg'}
+              Qntd={6}
+            />
+          </li>
+
+          <li key={1}>
+            <ItemDespensa
+              Id={1}
+              Img={'/diversas.webp'}
+              Unidade={'kg'}
+              Qntd={6}
+            />
+          </li>
+
+          <li key={1}>
+            <ItemDespensa
+              Id={1}
+              Img={'/diversas.webp'}
+              Unidade={'kg'}
+              Qntd={6}
+            />
+          </li>
+
 
         
           <li><div className="h-16 w-16"></div></li>
