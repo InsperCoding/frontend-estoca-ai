@@ -58,17 +58,7 @@ export default function Page() {
           )}
 
           {/* Esses itens foram colocados aqui apenas para visualizar, quando o app tiver funcional tirar eles e deixar apenas a logica de cima */}
-          <li><ItemDespensa/></li>
-          <li><ItemDespensa/></li>
-          <li><ItemDespensa/></li>
-          <li><ItemDespensa/></li>
-          <li><ItemDespensa/></li>
-          <li><ItemDespensa/></li>
-          <li><ItemDespensa/></li>
-          <li><ItemDespensa/></li>
-          <li><ItemDespensa/></li>
-          <li><ItemDespensa/></li>
-          <li><ItemDespensa/></li>
+         
 
         
           <li><div className="h-16 w-16"></div></li>
