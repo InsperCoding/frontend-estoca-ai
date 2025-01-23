@@ -123,7 +123,7 @@ export default function Page() {
         }`}
       >
         <Filter
-          onClick={toggleFilter} // Ensure the onClick handler is triggered when the icon is clicked
+          onClick={toggleFilter} 
           className={`text-base ${isFilterActive ? "text-white" : "text-gray-800"}`}
         />
       </button>
