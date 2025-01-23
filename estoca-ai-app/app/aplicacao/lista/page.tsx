@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
+import { Filter } from 'iconoir-react'; 
 import axios from "axios";
 
 interface Produto {
@@ -16,6 +17,7 @@ export default function Page() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [selectedProduto, setSelectedProduto] = useState<Produto | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isConfirmarPressed, setIsConfirmarPressed] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [tempQuantidade, setTempQuantidade] = useState<number | null>(null);
   const [isFilterActive, setIsFilterActive] = useState(false);
@@ -115,16 +117,19 @@ export default function Page() {
       <div className="flex items-center justify-between p-8 bg-white">
         <h2 className="text-3xl font-bold text-cinza1">Lista</h2>
         <button
-          onClick={toggleFilter}
-          className={`flex items-center px-4 py-2 rounded-md transition-colors duration-300 ${
-            isFilterActive ? "bg-azul1 text-white" : "bg-gray-200 text-gray-800"
-          }`}
-        >
-          Filtro
-        </button>
-      </div>
+        onClick={toggleFilter}
+        className={`flex items-center justify-center px-4 py-2 rounded-md transition-colors duration-300 ${
+          isFilterActive ? "bg-azul1 text-white" : "bg-white text-gray-800 border "
+        }`}
+      >
+        <Filter
+          onClick={toggleFilter} // Ensure the onClick handler is triggered when the icon is clicked
+          className={`text-base ${isFilterActive ? "text-white" : "text-gray-800"}`}
+        />
+      </button>
+    </div>
 
-      {/* Filter Bar with Transition Effects */}
+        {/* Filter Bar with Transition Effects */}
       <div
         className={`flex space-x-2 overflow-x-auto p-4 bg-white sm:flex-wrap sm:overflow-visible sm:justify-start gap-2 md:justify-center 
           transition-all duration-300 ease-in-out transform 
@@ -238,10 +243,41 @@ export default function Page() {
 
       {/* Confirmar Compra Button */}
       <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-10">
-        <button className="bg-white border border-azul1 text-azul1 px-6 py-3 rounded-md font-medium hover:bg-azul1 hover:text-white transition-colors duration-300">
+        <button 
+        onClick={() => setIsConfirmarPressed(true)}
+        className="bg-white border border-azul1 text-azul1 px-6 py-3 rounded-md font-medium hover:bg-azul1 hover:text-white transition-colors duration-300">
           Confirmar Compra
         </button>
       </div>
+
+      {/* Pop up Confirmar Compra */}
+      {isConfirmarPressed && (
+  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+    <div className="bg-white p-6 rounded-md">
+      <h3 className="text-xl font-semibold mb-4">Confirmar Compra</h3>
+      <p>Tem certeza que deseja confirmar a compra?</p>
+      <div className="flex flex-col items-center space-y-4 mt-4">
+       
+        <button 
+          onClick={() => setIsConfirmarPressed(false)}
+          className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300">
+          Sim, e adciona-los a despensa
+        </button>
+        <button 
+          onClick={() => setIsConfirmarPressed(false)}
+          className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300">
+          Sim, e não adciona-los a despensa
+        </button>
+        <button 
+          onClick={() => setIsConfirmarPressed(false)}
+          className="px-4 py-2 bg-white text-red-500 border border-red-500 rounded-md hover:bg-red-500 hover:text-white transition-colors duration-300">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
 
       {/* Edit Modal */}
       {isEditModalOpen && selectedProduto && (
