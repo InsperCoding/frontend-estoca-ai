@@ -14,21 +14,40 @@ interface Item {
 export default function Page() {
   const [itens, setItens] = useState<Item[]>([]);
   const [loading, setLoading] = useState(true);
+  const [casaSelecionada, setCasaSelecionada] = useState<string>("");
+  
+  useEffect(() => {
+    // Substitua pela sua URL real que retorna a casa selecionada do usuário
+    fetch("https://api.exemplo.com/casa-selecionada")
+      .then((response) => response.json())
+      .then((data: { casaId?: number }) => {
+        // Se data.casaId existir, usa o valor. Caso contrário, deixa vazio
+        if (data && data.casaId) {
+          setCasaSelecionada(String(data.casaId));
+        } else {
+          setCasaSelecionada("");
+        }
+      })
+      .catch((error) =>
+        console.error("Erro ao buscar casa selecionada:", error)
+      );
+  }, []);
 
-
- // NAO SE ESQUECER DE MUDAR ESSA ENDPOINT PARA O LINK DA API
   const fetchItens = async () => {
-    try {
-      const response = await fetch("/api/itens"); 
-      if (!response.ok) {
-        throw new Error("Erro ao buscar itens da API");
+    if (casaSelecionada !== '' ) {
+      try {
+        // NAO SE ESQUECER DE MUDAR ESSA ENDPOINT PARA O LINK DA API
+        const response = await fetch("/api/itens/" + casaSelecionada); 
+        if (!response.ok) {
+          throw new Error("Erro ao buscar itens da API");
+        }
+        const data: Item[] = await response.json();
+        setItens(data);
+      } catch (error) {
+        console.error("Erro ao buscar itens:", error);
+      } finally {
+        setLoading(false);
       }
-      const data: Item[] = await response.json();
-      setItens(data);
-    } catch (error) {
-      console.error("Erro ao buscar itens:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -36,11 +55,12 @@ export default function Page() {
     fetchItens();
   }, []);
 
+
     return (
       <div>
         <HeaderDepensa></HeaderDepensa>
         <ul className="ml-8 mr-8">
-          {loading ? (
+          {casaSelecionada === '' ? (<p>Selecione uma casa</p>) : loading ? (
             <p>Carregando itens...</p>
           ) : itens.length > 0 ? (
             itens.map((item) => (
