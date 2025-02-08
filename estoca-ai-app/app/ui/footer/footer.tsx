@@ -6,6 +6,8 @@ import Add from './add';
 import Item from './item';
 import clsx from 'clsx';
 import Background from './background';
+import ItemAdicionar from '../botaoadicionar/itemAdicionar';
+import { Swiper, SwiperSlide } from "swiper/react";
 
 interface Produto {
   id: number;
@@ -74,7 +76,7 @@ export default function Footer() {
           <div
             className={clsx(
               "popout bg-white p-6 w-full max-w-none transform transition-transform duration-500 ease-in-out",
-              showPopout ? "translate-y-0 h-[60%]" : "translate-y-full h-[60%]"
+              showPopout ? "translate-y-0 h-[80%]" : "translate-y-full h-80%]"
             )}
           >
             <div className="flex justify-between items-center mb-4">
@@ -92,8 +94,76 @@ export default function Footer() {
                     <span>{produto.nome}</span>
                   </li>
                 ))}
-              </ul>
+              </ul>  
             )}
+            
+            <ul>
+              <li key={1}>
+                <ItemAdicionar
+                  Id={1}
+                  Img={'/diversas.webp'}
+                  Unidade={'kg'}
+                  Qntd={6}
+                  />
+              </li>
+              <li key={1}>
+                <ItemAdicionar
+                  Id={1}
+                  Img={'/diversas.webp'}
+                  Unidade={'kg'}
+                  Qntd={6}
+                  />
+              </li>
+              <li key={1}>
+                <ItemAdicionar
+                  Id={1}
+                  Img={'/diversas.webp'}
+                  Unidade={'kg'}
+                  Qntd={6}
+                  />
+              </li>
+              <li key={1}>
+                <ItemAdicionar
+                  Id={1}
+                  Img={'/diversas.webp'}
+                  Unidade={'kg'}
+                  Qntd={6}
+                  />
+              </li>
+              <li key={1}>
+                <ItemAdicionar
+                  Id={1}
+                  Img={'/diversas.webp'}
+                  Unidade={'kg'}
+                  Qntd={6}
+                  />
+              </li>
+              <li key={1}>
+                <ItemAdicionar
+                  Id={1}
+                  Img={'/diversas.webp'}
+                  Unidade={'kg'}
+                  Qntd={6}
+                  />
+              </li>
+              <li key={1}>
+                <ItemAdicionar
+                  Id={1}
+                  Img={'/diversas.webp'}
+                  Unidade={'kg'}
+                  Qntd={6}
+                  />
+              </li>
+              <li key={1}>
+                <ItemAdicionar
+                  Id={1}
+                  Img={'/diversas.webp'}
+                  Unidade={'kg'}
+                  Qntd={6}
+                  />
+              </li>
+            </ul>
+            
           </div>
         </div>
       </div>
