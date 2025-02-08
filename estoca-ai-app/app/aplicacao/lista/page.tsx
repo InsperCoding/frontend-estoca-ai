@@ -258,14 +258,22 @@ export default function Page() {
       <p>Tem certeza que deseja confirmar a compra?</p>
       <div className="flex flex-col items-center space-y-4 mt-4">
        
-        <button 
-          onClick={() => setIsConfirmarPressed(false)}
-          className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300">
+      <button 
+          onClick={() => {
+            setProdutos((prev) => prev.map((produto) => ({ ...produto, checked: false })));
+            setIsConfirmarPressed(false);
+          }}
+          className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300"
+        >
           Sim, e adciona-los a despensa
         </button>
         <button 
-          onClick={() => setIsConfirmarPressed(false)}
-          className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300">
+          onClick={() => {
+            setProdutos((prev) => prev.map((produto) => ({ ...produto, checked: false })));
+            setIsConfirmarPressed(false);
+          }}
+          className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300"
+        >
           Sim, e não adciona-los a despensa
         </button>
         <button 
