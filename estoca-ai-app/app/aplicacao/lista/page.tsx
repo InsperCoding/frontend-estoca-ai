@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { Filter } from 'iconoir-react'; 
+import { Filter } from "iconoir-react";
 import axios from "axios";
 
 interface Produto {
@@ -24,22 +24,66 @@ export default function Page() {
   const [filteredCategoria, setFilteredCategoria] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchProdutos = async () => {
+    const fetchListaProdutos = async () => {
       const token = localStorage.getItem("token");
+      const userId = localStorage.getItem("userId");
+
+      if (!token || !userId) return;
+
       try {
-        const response = await axios.get<Produto[]>("http://localhost:8080/produtos", {
-          headers: {
-            Authorization: token,
-          },
-        });
-        setProdutos(response.data.map((produto) => ({ ...produto, checked: false })));
+        // Get current user's lista by passing the user's id.
+        const listaResponse = await axios.get(
+          `http://localhost:8080/listas/usuario/${userId}`,
+          {
+            headers: {
+              Authorization: token,
+            },
+          }
+        );
+        const lista = listaResponse.data;
+        if (lista) {
+          const listaId = lista.id;
+          // Fetch the products in the lista.
+          const produtosResponse = await axios.get(
+            `http://localhost:8080/listas/${listaId}/produtos`,
+            {
+              headers: {
+                Authorization: token,
+              },
+            }
+          );
+          setProdutos(
+            produtosResponse.data.map((produto: Produto) => ({
+              ...produto,
+              checked: false,
+            }))
+          );
+        } else {
+          setProdutos([]);
+        }
       } catch (error) {
-        console.error("Error fetching produtos:", error);
+        console.error("Error fetching lista produtos:", error);
       }
     };
 
-    fetchProdutos();
+    fetchListaProdutos();
   }, []);
+
+  const handleCreateLista = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      // Payload for creating a new lista. Adjust it as required.
+      const payload = { produtosIds: [], produtosQuantidades: [] };
+      const response = await axios.post("http://localhost:8080/listas", payload, {
+        headers: { Authorization: token },
+      });
+      alert("Lista criada com sucesso!");
+      // Optionally, refresh the page or update your state.
+    } catch (error) {
+      console.error("Error creating lista:", error);
+    }
+  };
 
   const handleEditProduto = (produto: Produto) => {
     setSelectedProduto(produto);
@@ -113,23 +157,31 @@ export default function Page() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Header with Filter Button */}
+      {/* Header Section with Filter and Create Lista Button */}
       <div className="flex items-center justify-between p-8 bg-white">
         <h2 className="text-3xl font-bold text-cinza1">Lista</h2>
-        <button
-        onClick={toggleFilter}
-        className={`flex items-center justify-center px-4 py-2 rounded-md transition-colors duration-300 ${
-          isFilterActive ? "bg-azul1 text-white" : "bg-white text-gray-800 border "
-        }`}
-      >
-        <Filter
-          onClick={toggleFilter} 
-          className={`text-base ${isFilterActive ? "text-white" : "text-gray-800"}`}
-        />
-      </button>
-    </div>
+        <div className="flex space-x-4">
+          <button
+            onClick={toggleFilter}
+            className={`flex items-center justify-center px-4 py-2 rounded-md transition-colors duration-300 ${
+              isFilterActive ? "bg-azul1 text-white" : "bg-white text-gray-800 border"
+            }`}
+          >
+            <Filter
+              onClick={toggleFilter}
+              className={`text-base ${isFilterActive ? "text-white" : "text-gray-800"}`}
+            />
+          </button>
+          <button
+            onClick={handleCreateLista}
+            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-300"
+          >
+            Criar Lista
+          </button>
+        </div>
+      </div>
 
-        {/* Filter Bar with Transition Effects */}
+      {/* Filter Bar with Transition Effects */}
       <div
         className={`flex space-x-2 overflow-x-auto p-4 bg-white sm:flex-wrap sm:overflow-visible sm:justify-start gap-2 md:justify-center 
           transition-all duration-300 ease-in-out transform 
@@ -205,9 +257,7 @@ export default function Page() {
                     onClick={() =>
                       setProdutos((prev) =>
                         prev.map((p) =>
-                          p.id === produto.id
-                            ? { ...p, checked: !p.checked }
-                            : p
+                          p.id === produto.id ? { ...p, checked: !p.checked } : p
                         )
                       )
                     }
@@ -243,57 +293,59 @@ export default function Page() {
 
       {/* Confirmar Compra Button */}
       <div className="fixed bottom-24 left-1/2 transform -translate-x-1/2 z-10">
-        <button 
-        onClick={() => setIsConfirmarPressed(true)}
-        className="bg-white border border-azul1 text-azul1 px-6 py-3 rounded-md font-medium hover:bg-azul1 hover:text-white transition-colors duration-300">
+        <button
+          onClick={() => setIsConfirmarPressed(true)}
+          className="bg-white border border-azul1 text-azul1 px-6 py-3 rounded-md font-medium hover:bg-azul1 hover:text-white transition-colors duration-300"
+        >
           Confirmar Compra
         </button>
       </div>
 
       {/* Pop up Confirmar Compra */}
       {isConfirmarPressed && (
-  <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-    <div className="bg-white p-6 rounded-md">
-      <h3 className="text-xl font-semibold mb-4">Confirmar Compra</h3>
-      <p>Tem certeza que deseja confirmar a compra?</p>
-      <div className="flex flex-col items-center space-y-4 mt-4">
-       
-      <button 
-          onClick={() => {
-            setProdutos((prev) => prev.map((produto) => ({ ...produto, checked: false })));
-            setIsConfirmarPressed(false);
-          }}
-          className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300"
-        >
-          Sim, e adciona-los a despensa
-        </button>
-        <button 
-          onClick={() => {
-            setProdutos((prev) => prev.map((produto) => ({ ...produto, checked: false })));
-            setIsConfirmarPressed(false);
-          }}
-          className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300"
-        >
-          Sim, e não adciona-los a despensa
-        </button>
-        <button 
-          onClick={() => setIsConfirmarPressed(false)}
-          className="px-4 py-2 bg-white text-red-500 border border-red-500 rounded-md hover:bg-red-500 hover:text-white transition-colors duration-300">
-          Cancelar
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-md">
+            <h3 className="text-xl font-semibold mb-4">Confirmar Compra</h3>
+            <p>Tem certeza que deseja confirmar a compra?</p>
+            <div className="flex flex-col items-center space-y-4 mt-4">
+              <button
+                onClick={() => {
+                  setProdutos((prev) =>
+                    prev.map((produto) => ({ ...produto, checked: false }))
+                  );
+                  setIsConfirmarPressed(false);
+                }}
+                className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300"
+              >
+                Sim, e adciona-los a despensa
+              </button>
+              <button
+                onClick={() => {
+                  setProdutos((prev) =>
+                    prev.map((produto) => ({ ...produto, checked: false }))
+                  );
+                  setIsConfirmarPressed(false);
+                }}
+                className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300"
+              >
+                Sim, e não adciona-los a despensa
+              </button>
+              <button
+                onClick={() => setIsConfirmarPressed(false)}
+                className="px-4 py-2 bg-white text-red-500 border border-red-500 rounded-md hover:bg-red-500 hover:text-white transition-colors duration-300"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Edit Modal */}
       {isEditModalOpen && selectedProduto && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded-md">
-            <h3 className="text-xl font-semibold mb-4">
-              {selectedProduto.nome}
-            </h3>
+            <h3 className="text-xl font-semibold mb-4">{selectedProduto.nome}</h3>
             <div className="flex items-center space-x-2 mb-4">
               <button
                 onClick={decrementQuantidade}
@@ -336,9 +388,7 @@ export default function Page() {
       {isConfirmModalOpen && selectedProduto && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded-md">
-            <h3 className="text-xl font-semibold mb-4">
-              Confirmar Exclusão
-            </h3>
+            <h3 className="text-xl font-semibold mb-4">Confirmar Exclusão</h3>
             <p>Tem certeza que deseja excluir "{selectedProduto.nome}"?</p>
             <div className="flex justify-end space-x-4 mt-4">
               <button

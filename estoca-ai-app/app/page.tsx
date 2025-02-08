@@ -15,9 +15,9 @@ export default function Home() {
     event.preventDefault();
     try {
       const response = await axios.post('http://localhost:8080/login', { email, password });
-      const token = response.data;
+      const [token, userId] = response.data.split(" ");
       localStorage.setItem('token', token);
-      
+      localStorage.setItem('userId', userId);
       router.push('/aplicacao/casas');
     } catch (error: any) {
       console.error('Login failed:', error.response?.data || error.message);
