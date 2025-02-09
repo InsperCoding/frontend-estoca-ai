@@ -9,7 +9,7 @@ export default function HeaderCasas() {
     const [visbile, setVisible] = useState(false);
 
     return (
-        <header className="pl-8 pr-8 pb-8 pt-8 flex flex-row w-screen items-center justify-between">
+        <header className="p-8 flex flex-row w-screen items-center justify-between">
             <h1 className="text-3xl font-bold">Casas</h1>
             <Plus onClick={() => setVisible(true)} className='text-2xl'></Plus>
             <div className={clsx(
