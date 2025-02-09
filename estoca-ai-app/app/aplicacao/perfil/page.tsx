@@ -50,7 +50,7 @@ export default function Profile() {
   };
 
   return (
-    <div style={{ fontFamily: "Arial, sans-serif", maxWidth: "400px", margin: "0 auto", padding: "20px" }}>
+    <div style={{ fontFamily: "Roboto, sans-serif", maxWidth: "400px", margin: "0 auto", padding: "20px" }}>
       <h1 style={{ fontSize: "32px", color: "#4E4E4E", fontFamily: "Roboto, sans-serif", fontWeight: "700", paddingTop: "20px", marginBottom: "40px" }}>Minha conta</h1>
 
       {/* Avatar e Nome */}
@@ -121,7 +121,7 @@ export default function Profile() {
             <input type="email"
               value={editedUser.email}
               onChange={(e) => setEditedUser({ ...editedUser, email: e.target.value })}
-              className="w-full p-3 mt-1 mb-4 border border-gray-300 rounded-lg focus:ring-azul1 focus:border-azul1 text-sm"
+              className="w-full p-3 mt-1 mb-6 border border-gray-300 rounded-lg focus:ring-azul1 focus:border-azul1 text-sm"
               placeholder="E-mail"
             />
 
