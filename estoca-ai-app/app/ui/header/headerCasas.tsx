@@ -19,7 +19,7 @@ export default function HeaderCasas() {
                 'hidden': !visbile,
                 },
             )}>
-                <div className='opacity-100 w-full bg-white rounded-2xl p-5 flex flex-col gap-8'>
+                <div className='opacity-100 w-full bg-white rounded-2xl p-5 flex flex-col gap-4'>
                     <FormCasas></FormCasas>
                     <button
                     onClick={() => setVisible(false)}
