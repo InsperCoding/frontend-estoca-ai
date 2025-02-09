@@ -22,50 +22,53 @@ export default function Page() {
   const [tempQuantidade, setTempQuantidade] = useState<number | null>(null);
   const [isFilterActive, setIsFilterActive] = useState(false);
   const [filteredCategoria, setFilteredCategoria] = useState<string | null>(null);
+  const [listaId, setListaId] = useState<string>("");
 
   useEffect(() => {
     const fetchListaProdutos = async () => {
       const token = localStorage.getItem("token");
       const userId = localStorage.getItem("userId");
-
       if (!token || !userId) return;
-
+  
       try {
-        // Get current user's lista by passing the user's id.
+        // Get all listas for the user.
         const listaResponse = await axios.get(
           `http://localhost:8080/listas/usuario/${userId}`,
           {
-            headers: {
-              Authorization: token,
-            },
+            headers: { Authorization: token },
           }
         );
-        const lista = listaResponse.data;
-        if (lista) {
-          const listaId = lista.id;
-          // Fetch the products in the lista.
+        
+        if (listaResponse.data && listaResponse.data.length > 0) {
+          // Extract the first lista.
+          const firstLista = listaResponse.data[0];
+          setListaId(firstLista.id);
+          console.log("Using lista id:", firstLista.id);
+          
+          // Now fetch produtos for that lista.
           const produtosResponse = await axios.get(
-            `http://localhost:8080/listas/${listaId}/produtos`,
+            `http://localhost:8080/listas/${firstLista.id}/produtos`,
             {
-              headers: {
-                Authorization: token,
-              },
+              headers: { Authorization: token },
             }
           );
-          setProdutos(
-            produtosResponse.data.map((produto: Produto) => ({
-              ...produto,
-              checked: false,
-            }))
-          );
+  
+          /* Merge produtos with quantity info from the lista.
+             Assumes firstLista.produtosIds and firstLista.produtosQuantidades arrays are aligned. */
+          const mergedProdutos = produtosResponse.data.map((produto: any) => {
+            const idx = firstLista.produtosIds.indexOf(produto.id);
+            return { ...produto, quantidade: firstLista.produtosQuantidades[idx] };
+          });
+  
+          setProdutos(mergedProdutos);
         } else {
-          setProdutos([]);
+          console.warn("No listas found for user:", userId);
         }
-      } catch (error) {
-        console.error("Error fetching lista produtos:", error);
+      } catch (error: any) {
+        console.error("Error fetching lista or produtos:", error.response?.data || error.message);
       }
     };
-
+  
     fetchListaProdutos();
   }, []);
 
@@ -73,13 +76,12 @@ export default function Page() {
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
-      // Payload for creating a new lista. Adjust it as required.
+      // Payload for creating a new lista. Adjust as required.
       const payload = { produtosIds: [], produtosQuantidades: [] };
       const response = await axios.post("http://localhost:8080/listas", payload, {
         headers: { Authorization: token },
       });
       alert("Lista criada com sucesso!");
-      // Optionally, refresh the page or update your state.
     } catch (error) {
       console.error("Error creating lista:", error);
     }
@@ -109,18 +111,23 @@ export default function Page() {
     setIsConfirmModalOpen(true);
   };
 
-  const confirmExcluirProduto = () => {
-    if (selectedProduto) {
-      setProdutos((prev) =>
-        prev.map((p) =>
-          p.id === selectedProduto.id
-            ? { ...p, quantidade: 0, checked: false }
-            : p
-        )
+  const confirmExcluirProduto = async () => {
+    if (!selectedProduto || !listaId) return;
+    const token = localStorage.getItem("token");
+    if (!token) return;
+    try {
+      await axios.delete(
+        `http://localhost:8080/listas/${listaId}/produtos/${selectedProduto.id}`,
+        { headers: { Authorization: token } }
       );
+      setProdutos((prev) =>
+        prev.filter((p) => p.id !== selectedProduto.id)
+      );
+      setIsConfirmModalOpen(false);
+      setSelectedProduto(null);
+    } catch (error: any) {
+      console.error("Error deleting product:", error.response?.data || error.message);
     }
-    setIsConfirmModalOpen(false);
-    setSelectedProduto(null);
   };
 
   const cancelExcluirProduto = () => {
@@ -155,6 +162,26 @@ export default function Page() {
     ? produtos.filter((produto) => produto.descricao === filteredCategoria)
     : produtos;
 
+  const handleConfirmarCompra = async () => {
+    const token = localStorage.getItem("token");
+    if (!token || !listaId) return;
+    const produtosToDelete = produtos.filter(produto => produto.checked);
+    try {
+      await Promise.all(
+        produtosToDelete.map(produto =>
+          axios.delete(
+            `http://localhost:8080/listas/${listaId}/produtos/${produto.id}`,
+            { headers: { Authorization: token } }
+          )
+        )
+      );
+      setProdutos(prev => prev.filter(produto => !produto.checked));
+      setIsConfirmarPressed(false);
+    } catch (error: any) {
+      console.error("Error deleting selected produtos:", error.response?.data || error.message);
+    }
+  };
+
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header Section with Filter and Create Lista Button */}
@@ -181,7 +208,7 @@ export default function Page() {
         </div>
       </div>
 
-      {/* Filter Bar with Transition Effects */}
+      {/* Filter Bar */}
       <div
         className={`flex space-x-2 overflow-x-auto p-4 bg-white sm:flex-wrap sm:overflow-visible sm:justify-start gap-2 md:justify-center 
           transition-all duration-300 ease-in-out transform 
@@ -252,7 +279,6 @@ export default function Page() {
                 className="flex items-center justify-between border-b pb-2"
               >
                 <div className="flex items-center space-x-4">
-                  {/* Customized Select Button */}
                   <button
                     onClick={() =>
                       setProdutos((prev) =>
@@ -301,7 +327,7 @@ export default function Page() {
         </button>
       </div>
 
-      {/* Pop up Confirmar Compra */}
+      {/* Confirmar Compra Modal */}
       {isConfirmarPressed && (
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded-md">
@@ -309,26 +335,16 @@ export default function Page() {
             <p>Tem certeza que deseja confirmar a compra?</p>
             <div className="flex flex-col items-center space-y-4 mt-4">
               <button
-                onClick={() => {
-                  setProdutos((prev) =>
-                    prev.map((produto) => ({ ...produto, checked: false }))
-                  );
-                  setIsConfirmarPressed(false);
-                }}
+                onClick={handleConfirmarCompra}
                 className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300"
               >
-                Sim, e adciona-los a despensa
+                Sim, e adiciona-los a despensa
               </button>
               <button
-                onClick={() => {
-                  setProdutos((prev) =>
-                    prev.map((produto) => ({ ...produto, checked: false }))
-                  );
-                  setIsConfirmarPressed(false);
-                }}
+                onClick={handleConfirmarCompra}
                 className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300"
               >
-                Sim, e não adciona-los a despensa
+                Sim, e não adiciona-los a despensa
               </button>
               <button
                 onClick={() => setIsConfirmarPressed(false)}
