@@ -2,7 +2,7 @@
 'use client';
 
 import { useEffect, useState } from "react";
-import { MapPin, NavArrowDown } from "iconoir-react";
+import { MapPin, NavArrowDown, Edit, Trash } from "iconoir-react";
 import axios from "axios";
 
 interface Produto {
@@ -243,43 +243,43 @@ export default function Page() {
   return (
     <div className="flex flex-col min-h-screen">
       {/* Header Section with Search and Casa Selection */}
-      <div className="flex items-center justify-between p-8 bg-white">
+      <div className="p-8 bg-white">
+      <div className="flex items-center justify-between">
         <h2 className="text-3xl font-bold text-cinza1">Lista</h2>
-        <div className="flex space-x-4 items-center">
-          <input
-            type="text"
-            placeholder="Buscar..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-24 md:w-32 px-4 py-2 rounded-md border border-gray-300 focus:outline-none text-xs"
-          />
-          {/* Inline Casa Selection with a smaller width */}
-          <div className="relative bg-white w-32">
-            <MapPin className="text-xs text-azul1 absolute left-2 top-1/2 transform -translate-y-1/2" />
-            <select
-              value={casaId || ""}
-              onChange={handleCasaChange}
-              className="w-full appearance-none text-cinza1 text-xs bg-white pl-8 pr-8 py-1 focus:outline-none"
-            >
-              <option value="" disabled>
-                Selecione uma casa
+        <div className="relative bg-white w-32">
+          <MapPin className="text-xs text-azul1 absolute left-2 top-1/2 transform -translate-y-1/2" />
+          <select
+            value={casaId || ""}
+            onChange={handleCasaChange}
+            className="w-full appearance-none text-cinza1 text-xs bg-white pl-8 pr-8 py-1 focus:outline-none"
+          >
+            <option value="" disabled>
+              Selecione uma casa
+            </option>
+            {casas.map((casa) => (
+              <option key={casa.id} value={casa.id}>
+                {casa.nome}
               </option>
-              {casas.map((casa) => (
-                <option key={casa.id} value={casa.id}>
-                  {casa.nome}
-                </option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
-              <NavArrowDown className="text-base text-cinza1" />
-            </div>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+            <NavArrowDown className="text-base text-cinza1" />
           </div>
         </div>
       </div>
-      {casaError && <p className="text-red-500 text-center">{casaError}</p>}
+      <div className="mt-8">
+        <input
+          type="text"
+          placeholder="Buscar Itens"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full md:w-auto px-4 py-2 rounded-md border border-gray-300 focus:outline-none text-xs"
+        />
+      </div>
+    </div>
 
       {/* Produtos List */}
-      <div className="flex-1 p-8">
+      <div className="flex-1 p-8 mt-[-25px]">
         <ul className="space-y-4">
           {displayedProdutos.length === 0 ? (
             <p>Sem produtos para exibir.</p>
@@ -309,18 +309,12 @@ export default function Page() {
                   <p>
                     {produto.quantidade} {produto.unidadeMedida}
                   </p>
-                  <button
-                    className="text-gray-600 hover:text-black"
-                    onClick={() => handleEditProduto(produto)}
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    className="text-red-600 hover:text-black"
-                    onClick={() => handleExcluirProduto(produto)}
-                  >
-                    🗑️
-                  </button>
+                  <button onClick={() => handleEditProduto(produto)} className="hover:text-black">
+                      <Edit className="w-5 h-5 text-gray-600" />
+                    </button>
+                    <button onClick={() => handleExcluirProduto(produto)} className="hover:text-black">
+                      <Trash className="w-5 h-5 text-red-600" />
+                    </button>
                 </div>
               </li>
             ))
