@@ -1,4 +1,5 @@
 'use client';
+
 import Image from 'next/image';
 import { Plus, Minus } from 'iconoir-react';
 import React, { useState } from 'react';
@@ -6,24 +7,32 @@ import React, { useState } from 'react';
 export default function ItemDespensa({
   Id,
   Img,
-  Unidade,
+  Nome,
   Qntd,
+  CasaId,
 }: {
-  Id: number;
+  Id: string;
   Img: string;
-  Unidade: string;
+  Nome: string;
   Qntd: number;
+  CasaId: string;
 }) {
   
   const [quantidade, setQuantidade] = useState(Qntd);
 
   const atualizarQuantidade = async (novaQuantidade: number) => {
     try {
-      // NAO SE ESQUECER DE MUDAR ESSA ENDPOINT PARA O LINK DA API
-      const response = await fetch(`/api/itens/${Id}`, {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        alert("Usuário não autenticado.");
+        return;
+      }
+
+      const response = await fetch(`http://localhost:8080/casas/${CasaId}/despensa/produtos/${Id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `${token}`,
         },
         body: JSON.stringify({ quantidade: novaQuantidade }),
       });
@@ -51,7 +60,6 @@ export default function ItemDespensa({
     }
   };
 
-
   return (
     <div className="flex flex-row mt-2 pb-2 mb-2 border-b border-solid border-gray-500 items-center justify-between">
       <div className="flex flex-row gap-2 items-center">
@@ -60,16 +68,13 @@ export default function ItemDespensa({
             src={Img || '/diversas.webp'} 
             layout="fill"
             objectFit="cover"
-            alt="Imagem do item"
+            alt={Nome || "Imagem do item"}
           />
         </div>
 
         <div className="flex flex-col justify-between h-16">
           <span className="text-base text-cinza1 font-semibold">
-            {Id ? `Item ${Id}` : 'Nome do item'} 
-          </span>
-          <span className="text-base text-cinza3">
-            {Unidade || '(X)'} 
+            {Nome || 'Nome do item'} 
           </span>
         </div>
       </div>
@@ -79,7 +84,7 @@ export default function ItemDespensa({
           <Minus />
         </button>
         <span className="text-2xl font-bold">
-          {Qntd !== undefined ? Qntd : '0'} 
+          {quantidade !== undefined ? quantidade : '0'} 
         </span>
         <button onClick={incrementar}>
           <Plus />

@@ -1,73 +1,96 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import axios from "axios";
 import { MapPin, NavArrowDown } from "iconoir-react";
 
 interface Casa {
-  id: number;
+  id: string;
   nome: string;
 }
 
 export default function SelecaoCasas() {
   const [casas, setCasas] = useState<Casa[]>([]);
-  const [casaSelecionada, setCasaSelecionada] = useState<string>("");
+  const [casaSelecionada, setCasaSelecionada] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
-  // 1) Busca a lista de casas disponíveis
+  // Buscar todas as casas e a casa selecionada do usuário ao entrar na página
   useEffect(() => {
-    // Substitua pela sua URL real que retorna a lista de casas
-    fetch("https://api.exemplo.com/casas")
-      .then((response) => response.json())
-      .then((data: Casa[]) => {
-        setCasas(data);
-      })
-      .catch((error) => console.error("Erro ao buscar casas:", error));
-  }, []);
-
-  // 2) Busca qual é a casa selecionada do usuário no backend, se existir
-  useEffect(() => {
-    // Substitua pela sua URL real que retorna a casa selecionada do usuário
-    fetch("https://api.exemplo.com/casa-selecionada")
-      .then((response) => response.json())
-      .then((data: { casaId?: number }) => {
-        // Se data.casaId existir, usa o valor. Caso contrário, deixa vazio
-        if (data && data.casaId) {
-          setCasaSelecionada(String(data.casaId));
-        } else {
-          setCasaSelecionada("");
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          setError("Usuário não autenticado.");
+          return;
         }
-      })
-      .catch((error) =>
-        console.error("Erro ao buscar casa selecionada:", error)
-      );
+
+        // Buscar todas as casas
+        const casasResponse = await axios.get("http://localhost:8080/casas", {
+          headers: { Authorization: `${token}` },
+        });
+        setCasas(casasResponse.data);
+
+        // Buscar detalhes do usuário para obter a casa selecionada
+        const userResponse = await axios.get("http://localhost:8080/users/details", {
+          headers: { Authorization: `${token}` },
+        });
+
+        setCasaSelecionada(userResponse.data.casaEscolhida || null);
+      } catch (err) {
+        console.error("Erro ao buscar dados:", err);
+        setError("Falha ao carregar casas.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  // 3) Quando o usuário mudar a casa selecionada no <select>, atualiza no backend
-  const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  // Atualizar a casa selecionada no backend quando o usuário muda a seleção
+  const handleChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selecionada = event.target.value;
-    // setCasaSelecionada(selecionada); apenas para teste no front, a casa muda automaticamente quando a requuisicao for bem sucedida
-    fetch("https://api.exemplo.com/casa-selecionada", {
-      method: "PUT", // ou POST/PATCH, dependendo de como seu backend espera
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ casaId: selecionada ? Number(selecionada) : null }),
-    })
-      .then((response) => {
-        if (!response.ok) {
-          throw new Error("Erro ao atualizar a casa selecionada no backend");
-        }
-        return response.json();
-      })
-      .then((updatedData) => {
-        // Se necessário, use o retorno do backend para setar o estado:
-        // setCasaSelecionada(String(updatedData.casaId));
-        setCasaSelecionada(selecionada);
-        console.log("Casa selecionada atualizada no backend com sucesso!");
-      })
-      .catch((error) =>
-        console.error("Erro ao atualizar casa selecionada:", error)
+
+    if (!selecionada) {
+      console.error("Erro: Nenhuma casa selecionada.");
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Usuário não autenticado.");
+        return;
+      }
+
+      // Atualiza no backend
+      await axios.put(
+        "http://localhost:8080/selecionar/casa",
+        { casaId: selecionada },
+        { headers: { Authorization: `${token}` } }
       );
+
+      // Buscar os detalhes do usuário novamente para confirmar a mudança
+      const userResponse = await axios.get("http://localhost:8080/users/details", {
+        headers: { Authorization: `${token}` },
+      });
+
+      setCasaSelecionada(userResponse.data.casaEscolhida);
+      console.log("Casa selecionada atualizada no backend com sucesso!");
+    } catch (err) {
+      console.error("Erro ao atualizar casa selecionada:", err);
+      setError("Falha ao atualizar a casa selecionada.");
+    }
   };
+
+  if (loading) {
+    return <p>Carregando...</p>;
+  }
+
+  if (error) {
+    return <p className="text-red-500">{error}</p>;
+  }
 
   return (
     <div className="flex flex-row items-center justify-between">
@@ -75,25 +98,19 @@ export default function SelecaoCasas() {
       <select
         name="casas"
         id="casa-selecionada"
-        value={casaSelecionada}
+        value={casaSelecionada || ""}
         onChange={handleChange}
         className="appearance-none border-none text-cinza1 text-sm bg-white p-2 rounded-md focus:outline-none focus:ring-0 focus:border-none"
       >
-        {/* Opção caso o usuário ainda não tenha selecionado nenhuma casa */}
-        <option value="">-------------</option>
-
-        {/* Renderiza as opções vindas da API */}
+        {/* Opção padrão para evitar seleção vazia */}
+        <option value="" disabled>
+          Selecione uma casa
+        </option>
         {casas.map((casa) => (
           <option key={casa.id} value={casa.id}>
             {casa.nome}
           </option>
         ))}
-        {/* Placeholdaer para teste, remove-los quando conectar a aplicação ao back */}
-        <option value="dog">Dog</option>
-        <option value="cat">Cat</option>
-        <option value="hamster">Hamster</option>
-        <option value="parrot">Parrot</option>
-        <option value="spider">Spider</option>
       </select>
       <NavArrowDown className="text-base text-cinza1" />
     </div>
