@@ -1,7 +1,8 @@
+//// filepath: /c:/Users/lucaf/InsperCoding/frontend-estoca-ai/estoca-ai-app/app/aplicacao/lista/page.tsx
 'use client';
 
 import { useEffect, useState } from "react";
-import { Filter } from "iconoir-react";
+import { MapPin, NavArrowDown } from "iconoir-react";
 import axios from "axios";
 
 interface Produto {
@@ -20,70 +21,96 @@ export default function Page() {
   const [isConfirmarPressed, setIsConfirmarPressed] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [tempQuantidade, setTempQuantidade] = useState<number | null>(null);
-  const [isFilterActive, setIsFilterActive] = useState(false);
-  const [filteredCategoria, setFilteredCategoria] = useState<string | null>(null);
-  const [listaId, setListaId] = useState<string>("");
+  const [casaId, setCasaId] = useState<string>("");
+  const [casas, setCasas] = useState<{ id: string; nome: string }[]>([]);
+  const [casaError, setCasaError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const fetchCasas = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setCasaError("Usuário não autenticado.");
+        return;
+      }
+      try {
+        const casasResponse = await axios.get("http://localhost:8080/casas", {
+          headers: { Authorization: token },
+        });
+        setCasas(casasResponse.data);
+        const userResponse = await axios.get("http://localhost:8080/users/details", {
+          headers: { Authorization: token },
+        });
+        if (userResponse.data.casaEscolhida) {
+          setCasaId(userResponse.data.casaEscolhida);
+        } else {
+          console.error("Nenhuma casa selecionada encontrada.");
+        }
+      } catch (error: any) {
+        console.error("Erro ao buscar casa selecionada:", error.response?.data || error.message);
+        setCasaError("Falha ao carregar casas.");
+      }
+    };
+
+    fetchCasas();
+  }, []);
 
   useEffect(() => {
     const fetchListaProdutos = async () => {
       const token = localStorage.getItem("token");
-      const userId = localStorage.getItem("userId");
-      if (!token || !userId) return;
+      if (!token || !casaId) return;
   
       try {
-        // Get all listas for the user.
         const listaResponse = await axios.get(
-          `http://localhost:8080/listas/usuario/${userId}`,
-          {
-            headers: { Authorization: token },
-          }
+          `http://localhost:8080/casas/${casaId}/lista-de-compras`,
+          { headers: { Authorization: token } }
         );
-        
-        if (listaResponse.data && listaResponse.data.length > 0) {
-          // Extract the first lista.
-          const firstLista = listaResponse.data[0];
-          setListaId(firstLista.id);
-          console.log("Using lista id:", firstLista.id);
-          
-          // Now fetch produtos for that lista.
-          const produtosResponse = await axios.get(
-            `http://localhost:8080/listas/${firstLista.id}/produtos`,
-            {
-              headers: { Authorization: token },
-            }
-          );
+        const lista = listaResponse.data;
   
-          /* Merge produtos with quantity info from the lista.
-             Assumes firstLista.produtosIds and firstLista.produtosQuantidades arrays are aligned. */
-          const mergedProdutos = produtosResponse.data.map((produto: any) => {
-            const idx = firstLista.produtosIds.indexOf(produto.id);
-            return { ...produto, quantidade: firstLista.produtosQuantidades[idx] };
-          });
+        const produtosResponse = await axios.get(
+          `http://localhost:8080/casas/${casaId}/lista-de-compras/produtos`,
+          { headers: { Authorization: token } }
+        );
   
-          setProdutos(mergedProdutos);
-        } else {
-          console.warn("No listas found for user:", userId);
-        }
+        // Build a map from produto id to its quantity
+        const produtosQuantMap = lista.produtosIds.reduce((acc: Record<string, number>, id: string, index: number) => {
+          acc[id] = lista.produtosQuantidades[index];
+          return acc;
+        }, {});
+  
+        const mergedProdutos = produtosResponse.data.map((produto: any) => ({
+          ...produto,
+          quantidade: produtosQuantMap[produto.id] || 0,
+          checked: false,
+        }));
+  
+        setProdutos(mergedProdutos);
       } catch (error: any) {
         console.error("Error fetching lista or produtos:", error.response?.data || error.message);
       }
     };
   
     fetchListaProdutos();
-  }, []);
+  }, [casaId]);
 
-  const handleCreateLista = async () => {
+  const handleCasaChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const novaCasa = event.target.value;
+    if (!novaCasa || novaCasa === casaId) return;
     const token = localStorage.getItem("token");
-    if (!token) return;
+    if (!token) {
+      setCasaError("Usuário não autenticado.");
+      return;
+    }
     try {
-      // Payload for creating a new lista. Adjust as required.
-      const payload = { produtosIds: [], produtosQuantidades: [] };
-      const response = await axios.post("http://localhost:8080/listas", payload, {
-        headers: { Authorization: token },
-      });
-      alert("Lista criada com sucesso!");
-    } catch (error) {
-      console.error("Error creating lista:", error);
+      await axios.put(
+        "http://localhost:8080/selecionar/casa",
+        { casaId: novaCasa },
+        { headers: { Authorization: token } }
+      );
+      setCasaId(novaCasa);
+    } catch (error: any) {
+      console.error("Erro ao atualizar casa selecionada:", error.response?.data || error.message);
+      setCasaError("Falha ao atualizar a casa selecionada.");
     }
   };
 
@@ -93,15 +120,55 @@ export default function Page() {
     setIsEditModalOpen(true);
   };
 
-  const handleSaveQuantidade = () => {
-    if (selectedProduto !== null && tempQuantidade !== null) {
-      setProdutos((prev) =>
-        prev.map((produto) =>
-          produto.id === selectedProduto.id
-            ? { ...produto, quantidade: tempQuantidade }
-            : produto
+  const handleConfirmarCompraAddToDespensa = async () => {
+    const token = localStorage.getItem("token");
+    if (!token || !casaId) return;
+    const produtosSelecionados = produtos.filter((produto) => produto.checked);
+    try {
+      await Promise.all(
+        produtosSelecionados.map((produto) =>
+          Promise.all([
+            axios.post(
+              `http://localhost:8080/casas/${casaId}/despensa/produtos/${produto.id}`,
+              { quantidade: produto.quantidade },
+              { headers: { Authorization: token } }
+            ),
+            axios.delete(
+              `http://localhost:8080/casas/${casaId}/lista-de-compras/produtos/${produto.id}?quantidade=${produto.quantidade}`,
+              { headers: { Authorization: token } }
+            )
+          ])
         )
       );
+      setProdutos((prev) =>
+        prev.filter((produto) => !produto.checked)
+      );
+      setIsConfirmarPressed(false);
+    } catch (error: any) {
+      console.error("Error processing compra to despensa:", error.response?.data || error.message);
+    }
+  };
+
+  const handleSaveQuantidade = async () => {
+    if (selectedProduto !== null && tempQuantidade !== null) {
+      const token = localStorage.getItem("token");
+      if (!token || !casaId) return;
+      try {
+        await axios.put(
+          `http://localhost:8080/casas/${casaId}/lista-de-compras/produtos/${selectedProduto.id}?quantidade=${tempQuantidade}`,
+          {},
+          { headers: { Authorization: token } }
+        );
+        setProdutos((prev) =>
+          prev.map((produto) =>
+            produto.id === selectedProduto.id
+              ? { ...produto, quantidade: tempQuantidade }
+              : produto
+          )
+        );
+      } catch (error: any) {
+        console.error("Error updating quantity:", error.response?.data || error.message);
+      }
     }
     setIsEditModalOpen(false);
   };
@@ -112,12 +179,12 @@ export default function Page() {
   };
 
   const confirmExcluirProduto = async () => {
-    if (!selectedProduto || !listaId) return;
+    if (!selectedProduto || !casaId) return;
     const token = localStorage.getItem("token");
     if (!token) return;
     try {
       await axios.delete(
-        `http://localhost:8080/listas/${listaId}/produtos/${selectedProduto.id}`,
+        `http://localhost:8080/casas/${casaId}/lista-de-compras/produtos/${selectedProduto.id}?quantidade=${selectedProduto.quantidade}`,
         { headers: { Authorization: token } }
       );
       setProdutos((prev) =>
@@ -147,30 +214,15 @@ export default function Page() {
     }
   };
 
-  const toggleFilter = () => {
-    setIsFilterActive(!isFilterActive);
-    if (isFilterActive) {
-      setFilteredCategoria(null);
-    }
-  };
-
-  const filterByCategoria = (categoria: string) => {
-    setFilteredCategoria(categoria);
-  };
-
-  const displayedProdutos = filteredCategoria
-    ? produtos.filter((produto) => produto.descricao === filteredCategoria)
-    : produtos;
-
   const handleConfirmarCompra = async () => {
     const token = localStorage.getItem("token");
-    if (!token || !listaId) return;
+    if (!token || !casaId) return;
     const produtosToDelete = produtos.filter(produto => produto.checked);
     try {
       await Promise.all(
         produtosToDelete.map(produto =>
           axios.delete(
-            `http://localhost:8080/listas/${listaId}/produtos/${produto.id}`,
+            `http://localhost:8080/casas/${casaId}/lista-de-compras/produtos/${produto.id}?quantidade=${produto.quantidade}`,
             { headers: { Authorization: token } }
           )
         )
@@ -182,90 +234,49 @@ export default function Page() {
     }
   };
 
+  const displayedProdutos = searchQuery
+    ? produtos.filter((produto) =>
+        produto.nome.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : produtos;
+
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Header Section with Filter and Create Lista Button */}
+      {/* Header Section with Search and Casa Selection */}
       <div className="flex items-center justify-between p-8 bg-white">
         <h2 className="text-3xl font-bold text-cinza1">Lista</h2>
-        <div className="flex space-x-4">
-          <button
-            onClick={toggleFilter}
-            className={`flex items-center justify-center px-4 py-2 rounded-md transition-colors duration-300 ${
-              isFilterActive ? "bg-azul1 text-white" : "bg-white text-gray-800 border"
-            }`}
-          >
-            <Filter
-              onClick={toggleFilter}
-              className={`text-base ${isFilterActive ? "text-white" : "text-gray-800"}`}
-            />
-          </button>
-          <button
-            onClick={handleCreateLista}
-            className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors duration-300"
-          >
-            Criar Lista
-          </button>
+        <div className="flex space-x-4 items-center">
+          <input
+            type="text"
+            placeholder="Buscar..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-24 md:w-32 px-4 py-2 rounded-md border border-gray-300 focus:outline-none text-xs"
+          />
+          {/* Inline Casa Selection with a smaller width */}
+          <div className="relative bg-white w-32">
+            <MapPin className="text-xs text-azul1 absolute left-2 top-1/2 transform -translate-y-1/2" />
+            <select
+              value={casaId || ""}
+              onChange={handleCasaChange}
+              className="w-full appearance-none text-cinza1 text-xs bg-white pl-8 pr-8 py-1 focus:outline-none"
+            >
+              <option value="" disabled>
+                Selecione uma casa
+              </option>
+              {casas.map((casa) => (
+                <option key={casa.id} value={casa.id}>
+                  {casa.nome}
+                </option>
+              ))}
+            </select>
+            <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+              <NavArrowDown className="text-base text-cinza1" />
+            </div>
+          </div>
         </div>
       </div>
-
-      {/* Filter Bar */}
-      <div
-        className={`flex space-x-2 overflow-x-auto p-4 bg-white sm:flex-wrap sm:overflow-visible sm:justify-start gap-2 md:justify-center 
-          transition-all duration-300 ease-in-out transform 
-          ${isFilterActive ? "opacity-100 translate-y-0 max-h-40" : "opacity-0 -translate-y-5 max-h-0 overflow-hidden"}`}
-      >
-        <button
-          onClick={() => filterByCategoria("Hortifruti")}
-          className={`px-2 py-1 rounded-md border text-sm ${
-            filteredCategoria === "Hortifruti"
-              ? "border-azul1 text-azul1"
-              : "border-black text-black bg-white"
-          }`}
-          aria-pressed={filteredCategoria === "Hortifruti"}
-        >
-          Hortifruti
-        </button>
-        <button
-          onClick={() => filterByCategoria("Padaria")}
-          className={`px-2 py-1 rounded-md border text-sm ${
-            filteredCategoria === "Padaria"
-              ? "border-azul1 text-azul1"
-              : "border-black text-black bg-white"
-          }`}
-          aria-pressed={filteredCategoria === "Padaria"}
-        >
-          Padaria
-        </button>
-        <button
-          onClick={() => filterByCategoria("Acougue")}
-          className={`px-2 py-1 rounded-md border text-sm ${
-            filteredCategoria === "Acougue"
-              ? "border-azul1 text-azul1"
-              : "border-black text-black bg-white"
-          }`}
-          aria-pressed={filteredCategoria === "Acougue"}
-        >
-          Acougue
-        </button>
-        <button
-          onClick={() => filterByCategoria("Peixaria")}
-          className={`px-2 py-1 rounded-md border text-sm ${
-            filteredCategoria === "Peixaria"
-              ? "border-azul1 text-azul1"
-              : "border-black text-black bg-white"
-          }`}
-          aria-pressed={filteredCategoria === "Peixaria"}
-        >
-          Peixaria
-        </button>
-        <button
-          onClick={() => setFilteredCategoria(null)}
-          className="px-2 py-1 rounded-md bg-red-500 text-white border border-gray-800"
-          aria-pressed={false}
-        >
-          Limpar
-        </button>
-      </div>
+      {casaError && <p className="text-red-500 text-center">{casaError}</p>}
 
       {/* Produtos List */}
       <div className="flex-1 p-8">
@@ -335,7 +346,7 @@ export default function Page() {
             <p>Tem certeza que deseja confirmar a compra?</p>
             <div className="flex flex-col items-center space-y-4 mt-4">
               <button
-                onClick={handleConfirmarCompra}
+                onClick={handleConfirmarCompraAddToDespensa}
                 className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300"
               >
                 Sim, e adiciona-los a despensa
