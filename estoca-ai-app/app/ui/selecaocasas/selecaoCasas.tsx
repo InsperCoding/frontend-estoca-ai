@@ -9,7 +9,7 @@ interface Casa {
   nome: string;
 }
 
-export default function SelecaoCasas() {
+export default function SelecaoCasas({ onCasaSelecionada }: { onCasaSelecionada: (novaCasa: string) => void }) {
   const [casas, setCasas] = useState<Casa[]>([]);
   const [casaSelecionada, setCasaSelecionada] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -51,11 +51,7 @@ export default function SelecaoCasas() {
   // Atualizar a casa selecionada no backend quando o usuário muda a seleção
   const handleChange = async (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selecionada = event.target.value;
-
-    if (!selecionada) {
-      console.error("Erro: Nenhuma casa selecionada.");
-      return;
-    }
+    if (!selecionada || selecionada === casaSelecionada) return; // Evita re-selecionar a mesma casa
 
     try {
       const token = localStorage.getItem("token");
@@ -64,25 +60,20 @@ export default function SelecaoCasas() {
         return;
       }
 
-      // Atualiza no backend
       await axios.put(
         "http://localhost:8080/selecionar/casa",
         { casaId: selecionada },
         { headers: { Authorization: `${token}` } }
       );
 
-      // Buscar os detalhes do usuário novamente para confirmar a mudança
-      const userResponse = await axios.get("http://localhost:8080/users/details", {
-        headers: { Authorization: `${token}` },
-      });
-
-      setCasaSelecionada(userResponse.data.casaEscolhida);
-      console.log("Casa selecionada atualizada no backend com sucesso!");
+      setCasaSelecionada(selecionada); // Atualiza o estado local
+      onCasaSelecionada(selecionada); // Notifica a mudança para a `Despensa.tsx`
     } catch (err) {
       console.error("Erro ao atualizar casa selecionada:", err);
       setError("Falha ao atualizar a casa selecionada.");
     }
   };
+
 
   if (loading) {
     return <p>Carregando...</p>;

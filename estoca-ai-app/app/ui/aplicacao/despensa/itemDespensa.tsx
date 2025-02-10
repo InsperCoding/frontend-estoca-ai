@@ -10,12 +10,14 @@ export default function ItemDespensa({
   Nome,
   Qntd,
   CasaId,
+  refreshItens, // Função para atualizar a despensa
 }: {
   Id: string;
   Img: string;
   Nome: string;
   Qntd: number;
   CasaId: string;
+  refreshItens: () => void;
 }) {
   
   const [quantidade, setQuantidade] = useState(Qntd);
@@ -28,8 +30,13 @@ export default function ItemDespensa({
         return;
       }
 
+      if (!CasaId || !Id) {
+        console.error("Erro: CasaId ou Id indefinido!");
+        return;
+      }
+
       const response = await fetch(`http://localhost:8080/casas/${CasaId}/despensa/produtos/${Id}`, {
-        method: 'PATCH',
+        method: 'PUT', // Mantemos como PUT, agora que o backend aceita JSON
         headers: {
           'Content-Type': 'application/json',
           Authorization: `${token}`,
@@ -40,6 +47,10 @@ export default function ItemDespensa({
       if (!response.ok) {
         throw new Error('Erro ao atualizar a quantidade');
       }
+
+      setQuantidade(novaQuantidade); // Atualiza o estado local
+      refreshItens(); // Atualiza a lista de produtos na despensa
+
     } catch (error) {
       console.error('Erro na atualização da quantidade:', error);
       alert('Não foi possível atualizar a quantidade. Tente novamente.');
@@ -83,9 +94,7 @@ export default function ItemDespensa({
         <button onClick={decrementar} disabled={quantidade <= 0}>
           <Minus />
         </button>
-        <span className="text-2xl font-bold">
-          {quantidade !== undefined ? quantidade : '0'} 
-        </span>
+        <span className="text-2xl font-bold">{quantidade}</span>
         <button onClick={incrementar}>
           <Plus />
         </button>

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import HeaderDepensa from "@/app/ui/header/headerDespensa";
 import ItemDespensa from "@/app/ui/aplicacao/despensa/itemDespensa";
+import ItemAdicionar from "@/app/ui/botaoadicionar/itemAdicionar"; 
 
 interface Produto {
   Id: string;
@@ -18,6 +19,15 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [casaSelecionada, setCasaSelecionada] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+
+  // Atualiza a casa selecionada quando o usuário troca no Header
+  const atualizarCasaSelecionada = async (novaCasa: string) => {
+    if (novaCasa === casaSelecionada) return; // Evita recarregar desnecessariamente
+
+    setCasaSelecionada(novaCasa); // Atualiza a casa selecionada
+    setItens([]); // Reseta os itens antes de carregar novos produtos
+  };
 
   // Buscar casa selecionada pelo usuário
   useEffect(() => {
@@ -29,13 +39,18 @@ export default function Page() {
           return;
         }
 
-        setError(null); // Resetar erro antes da requisição
+        setError(null);
 
         const response = await axios.get("http://localhost:8080/users/details", {
           headers: { Authorization: `${token}` },
         });
 
-        setCasaSelecionada(response.data.casaEscolhida || null);
+        if (!response.data.casaEscolhida) {
+          setError("Nenhuma casa foi selecionada.");
+          return;
+        }
+
+        setCasaSelecionada(response.data.casaEscolhida);
       } catch (err) {
         console.error("Erro ao buscar casa selecionada:", err);
         setError("Falha ao carregar a casa selecionada.");
@@ -46,66 +61,88 @@ export default function Page() {
   }, []);
 
   // Buscar itens da despensa da casa selecionada
-  useEffect(() => {
-    const fetchItens = async () => {
-      if (!casaSelecionada) return;
+  const fetchItens = async () => {
+    if (!casaSelecionada) return;
 
-      try {
-        setLoading(true);
-        setError(null); // Resetar erro antes da requisição
+    try {
+      setLoading(true);
+      setError(null);
+      setItens([]); // Reseta a lista de itens antes de carregar os novos
 
-        const token = localStorage.getItem("token");
-        if (!token) {
-          setError("Usuário não autenticado.");
-          setLoading(false);
-          return;
-        }
-
-        // Buscar a despensa da casa para obter os IDs e quantidades dos produtos
-        const despensaResponse = await axios.get(`http://localhost:8080/casas/${casaSelecionada}/despensa`, {
-          headers: { Authorization: `${token}` },
-        });
-
-        const { produtosIds, produtosQuantidades } = despensaResponse.data;
-        if (!produtosIds || produtosIds.length === 0) {
-          setItens([]);
-          setLoading(false);
-          return;
-        }
-
-        // Buscar os detalhes dos produtos com base nos IDs
-        const produtosResponse = await axios.post("http://localhost:8080/produtos/getByIds", {
-          ids: produtosIds
-        }, {
-          headers: { Authorization: `${token}` },
-        });
-
-        const produtosDetalhes = produtosResponse.data; // Lista de produtos com imagem e nome
-
-        // Combinar os produtos com suas respectivas quantidades
-        const produtosFormatados = produtosDetalhes.map((produto: any, index: number) => ({
-          Id: produto._id,
-          Img: produto.imagemb64,
-          Nome: produto.nome,
-          Qntd: produtosQuantidades[index] || 0, // Garantindo que a quantidade corresponda
-          CasaId: casaSelecionada, // Passando CasaId para o ItemDespensa
-        }));
-
-        setItens(produtosFormatados);
-      } catch (err) {
-        console.error("Erro ao buscar itens da despensa:", err);
-        setError("Falha ao carregar os itens da despensa.");
-      } finally {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setError("Usuário não autenticado.");
         setLoading(false);
+        return;
       }
-    };
 
+      const despensaResponse = await axios.get(`http://localhost:8080/casas/${casaSelecionada}/despensa`, {
+        headers: { Authorization: `${token}` },
+      });
+
+      const { produtosIds, produtosQuantidades } = despensaResponse.data;
+      if (!produtosIds || produtosIds.length === 0) {
+        setItens([]); // Mantém a UI vazia se não houver produtos
+        setLoading(false);
+        return;
+      }
+
+      const produtosResponse = await axios.get(`http://localhost:8080/casas/${casaSelecionada}/despensa/produtos`, {
+        headers: { Authorization: `${token}` },
+        params: { ids: produtosIds.join(",") },
+      });
+
+      const produtosDetalhes = produtosResponse.data;
+
+      const produtosFormatados = produtosDetalhes.map((produto: any, index: number) => ({
+        Id: produto._id || produtosIds[index],
+        Img: produto.imagemb64 ? `data:image/png;base64,${produto.imagemb64}` : "/placeholder.png",
+        Nome: produto.nome || "Produto sem nome",
+        Qntd: produtosQuantidades[index] || 0,
+        CasaId: casaSelecionada,
+      }));
+
+      setItens(produtosFormatados);
+    } catch (err) {
+      console.error("Erro ao buscar itens da despensa:", err);
+      setError("Falha ao carregar os itens da despensa.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchItens();
   }, [casaSelecionada]);
 
   return (
     <div>
-      <HeaderDepensa />
+      {/* Agora passamos `atualizarCasaSelecionada` para atualizar os produtos ao trocar de casa */}
+      <HeaderDepensa onCasaSelecionada={atualizarCasaSelecionada} />
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+          <div className="bg-white p-6 rounded shadow-lg w-96">
+            <h2 className="text-xl font-semibold mb-4">Escolha um produto</h2>
+
+            <ItemAdicionar
+              produto={{ id: "produto-teste", nome: "Produto Exemplo", imagemb64: undefined }}
+              onAddClick={() => {
+                setShowModal(false);
+                fetchItens(); // Atualiza ao fechar o popout
+              }}
+            />
+
+            <button onClick={() => {
+              setShowModal(false);
+              fetchItens(); // Atualiza ao fechar o popout
+            }} className="mt-4 p-2 bg-red-500 text-white rounded">
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
       <ul className="ml-8 mr-8">
         {error ? (
           <p className="text-red-500">{error}</p>
@@ -119,7 +156,8 @@ export default function Page() {
                 Img={item.Img} 
                 Nome={item.Nome} 
                 Qntd={item.Qntd} 
-                CasaId={item.CasaId} // Agora o item sabe de qual casa ele pertence
+                CasaId={item.CasaId}
+                refreshItens={fetchItens}
               />
             </li>
           ))
