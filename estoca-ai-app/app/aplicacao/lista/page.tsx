@@ -1,8 +1,7 @@
-//// filepath: /c:/Users/lucaf/InsperCoding/frontend-estoca-ai/estoca-ai-app/app/aplicacao/lista/page.tsx
 'use client';
 
 import { useEffect, useState } from "react";
-import { MapPin, NavArrowDown, Edit, Trash } from "iconoir-react";
+import { MapPin, NavArrowDown, Edit, Trash, PlusCircle, MinusCircle } from "iconoir-react";
 import axios from "axios";
 
 interface Produto {
@@ -270,11 +269,11 @@ export default function Page() {
       <div className="mt-8">
         <input
           type="text"
-          placeholder="Buscar Itens"
+          placeholder="Buscar produto..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full md:w-auto px-4 py-2 rounded-md border border-gray-300 focus:outline-none text-xs"
-        />
+					className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#6CB0BE]"
+					/>
       </div>
     </div>
 
@@ -367,40 +366,40 @@ export default function Page() {
         <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
           <div className="bg-white p-6 rounded-md">
             <h3 className="text-xl font-semibold mb-4">{selectedProduto.nome}</h3>
-            <div className="flex items-center space-x-2 mb-4">
-              <button
-                onClick={decrementQuantidade}
-                className="px-4 py-2 border rounded-md"
-              >
-                -
-              </button>
-              <input
-                type="number"
-                className="text-center border rounded-md w-16"
-                value={tempQuantidade ?? ""}
-                onChange={(e) => setTempQuantidade(Number(e.target.value))}
-              />
-              <button
-                onClick={incrementQuantidade}
-                className="px-4 py-2 border rounded-md"
-              >
-                +
-              </button>
-            </div>
-            <div className="flex justify-end space-x-4">
-              <button
-                onClick={() => setIsEditModalOpen(false)}
-                className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleSaveQuantidade}
-                className="px-4 py-2 bg-azul1 text-white rounded-md hover:bg-blue-600 transition-colors duration-300"
-              >
-                Alterar
-              </button>
-            </div>
+            <div className="flex items-center justify-center space-x-2 mb-4">
+						<button
+							onClick={decrementQuantidade}
+							className="hover:text-[#6CB0BE]"
+						>
+							<MinusCircle className="w-5 h-5" />
+						</button>
+						<input
+							type="number"
+							className="text-center border rounded-md w-16"
+							value={tempQuantidade ?? ""}
+							onChange={(e) => setTempQuantidade(Number(e.target.value))}
+						/>
+						<button
+							onClick={incrementQuantidade}
+							className="hover:text-[#6CB0BE]"
+						>
+							<PlusCircle className="w-5 h-5" />
+						</button>
+					</div>
+					<div className="flex justify-center space-x-4">
+						<button
+							onClick={() => setIsEditModalOpen(false)}
+							className="px-4 py-2 bg-white text-azul1 border border-azul1 rounded-md hover:bg-azul1 hover:text-white transition-colors duration-300"
+						>
+							Cancelar
+						</button>
+						<button
+							onClick={handleSaveQuantidade}
+							className="px-4 py-2 bg-azul1 text-white rounded-md hover:bg-blue-600 transition-colors duration-300"
+						>
+							Alterar
+						</button>
+					</div>
           </div>
         </div>
       )}

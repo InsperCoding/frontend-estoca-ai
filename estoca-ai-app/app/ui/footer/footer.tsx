@@ -36,20 +36,20 @@ export default function Footer() {
           setError("Usuário não autenticado.");
           return;
         }
-
+  
         setError(null); // Resetar erro antes da requisição
-
+  
         const response = await axios.get("http://localhost:8080/users/details", {
           headers: { Authorization: `${token}` },
         });
-
+  
         setCasaSelecionada(response.data.casaEscolhida || null);
       } catch (err) {
         console.error("Erro ao buscar casa selecionada:", err);
         setError("Falha ao carregar a casa selecionada.");
       }
     };
-
+  
     fetchCasaSelecionada();
   }, []);
 
@@ -121,7 +121,7 @@ export default function Footer() {
             "Content-Type": "application/json",
             Authorization: token,
           },
-          body: JSON.stringify({ quantidade }), // Enviando quantidade no body
+          body: JSON.stringify({ quantidade }),
         }
       );
   
@@ -135,7 +135,35 @@ export default function Footer() {
       console.error("Erro ao adicionar produto à despensa:", error);
       alert("Erro ao adicionar o produto. Tente novamente.");
     }
-  };  
+  };
+
+  // Função para adicionar produto à lista de compras
+  const adicionarProdutoLista = async () => {
+    if (!selectedProduto) return;
+    try {
+      const token = localStorage.getItem("token") || "";
+      const response = await fetch(
+        `http://localhost:8080/casas/${casaSelecionada}/lista-de-compras/produtos/${selectedProduto.id}?quantidade=${quantidade}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: token,
+          },
+        }
+      );
+  
+      if (!response.ok) {
+        throw new Error("Erro ao adicionar produto à lista de compras");
+      }
+  
+      alert("Produto adicionado à Lista de Compras com sucesso!");
+      closeSelectionPopout();
+    } catch (error) {
+      console.error("Erro ao adicionar produto à lista de compras:", error);
+      alert("Erro ao adicionar o produto à Lista de Compras. Tente novamente.");
+    }
+  };
 
   return (
     <div>
@@ -154,12 +182,14 @@ export default function Footer() {
 
       {/* Popout para adicionar produtos */}
       <div className="formAdd">
-        <div className={clsx(
+        <div
+          className={clsx(
             "popout-overlay fixed inset-0 z-50 flex items-end justify-center bg-black transition-opacity duration-300 ease-in-out",
             showPopout ? "opacity-100 bg-opacity-50" : "opacity-0 pointer-events-none bg-opacity-0"
           )}
         >
-          <div className={clsx(
+          <div
+            className={clsx(
               "popout bg-white p-6 w-full max-w-none transform transition-transform duration-500 ease-in-out",
               showPopout ? "translate-y-0 h-[80%]" : "translate-y-full h-80%]"
             )}
@@ -198,7 +228,8 @@ export default function Footer() {
 
       {/* Popout para escolher onde adicionar */}
       {selectedProduto && (
-        <div className={clsx(
+        <div
+          className={clsx(
             "popout-overlay fixed inset-0 z-50 flex items-center justify-center bg-black transition-opacity duration-300 ease-in-out",
             showSelectionPopout ? "opacity-100 bg-opacity-50" : "opacity-0 pointer-events-none bg-opacity-0"
           )}
@@ -218,13 +249,22 @@ export default function Footer() {
 
             {/* Botões de ação */}
             <div className="flex flex-col gap-3">
-              <button onClick={adicionarProdutoDespensa} className="w-full border border-[#6CB0BE] text-[#6CB0BE] font-semibold py-2 rounded-lg">
+              <button
+                onClick={adicionarProdutoDespensa}
+                className="w-full border border-[#6CB0BE] text-[#6CB0BE] font-semibold py-2 rounded-lg"
+              >
                 Adicionar à Despensa
               </button>
-              <button className="w-full border border-[#6CB0BE] text-[#6CB0BE] font-semibold py-2 rounded-lg">
+              <button
+                onClick={adicionarProdutoLista}
+                className="w-full border border-[#6CB0BE] text-[#6CB0BE] font-semibold py-2 rounded-lg"
+              >
                 Adicionar à Lista de Compras
               </button>
-              <button onClick={closeSelectionPopout} className="w-full border border-red-500 text-red-500 font-semibold py-2 rounded-lg hover:bg-red-500 hover:text-white">
+              <button
+                onClick={closeSelectionPopout}
+                className="w-full border border-red-500 text-red-500 font-semibold py-2 rounded-lg hover:bg-red-500 hover:text-white"
+              >
                 Cancelar
               </button>
             </div>
