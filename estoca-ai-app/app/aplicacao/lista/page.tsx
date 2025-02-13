@@ -58,6 +58,8 @@ export default function Page() {
     const fetchListaProdutos = async () => {
       const token = localStorage.getItem("token");
       if (!token || !casaId) return;
+
+      // console.log("casaID" , casaId);
   
       try {
         const listaResponse = await axios.get(
@@ -124,30 +126,27 @@ export default function Page() {
     if (!token || !casaId) return;
     const produtosSelecionados = produtos.filter((produto) => produto.checked);
     try {
-      await Promise.all(
-        produtosSelecionados.map((produto) =>
-          Promise.all([
-            axios.post(
-              `http://localhost:8080/casas/${casaId}/despensa/produtos/${produto.id}`,
-              { quantidade: produto.quantidade },
-              { headers: { Authorization: token } }
-            ),
-            axios.delete(
-              `http://localhost:8080/casas/${casaId}/lista-de-compras/produtos/${produto.id}?quantidade=${produto.quantidade}`,
-              { headers: { Authorization: token } }
-            )
-          ])
-        )
-      );
-      setProdutos((prev) =>
-        prev.filter((produto) => !produto.checked)
-      );
+      for (const produto of produtosSelecionados) {
+        await axios.post(
+          `http://localhost:8080/casas/${casaId}/despensa/produtos/${produto.id}`,
+          { quantidade: produto.quantidade },
+          { headers: { Authorization: token } }
+        );
+        await axios.delete(
+          `http://localhost:8080/casas/${casaId}/lista-de-compras/produtos/${produto.id}?quantidade=${produto.quantidade}`,
+          { headers: { Authorization: token } }
+        );
+      }
+      setProdutos((prev) => prev.filter((produto) => !produto.checked));
       setIsConfirmarPressed(false);
     } catch (error: any) {
-      console.error("Error processing compra to despensa:", error.response?.data || error.message);
+      console.error(
+        "Error processing compra to despensa:",
+        error.response?.data || error.message
+      );
     }
   };
-
+  
   const handleSaveQuantidade = async () => {
     if (selectedProduto !== null && tempQuantidade !== null) {
       const token = localStorage.getItem("token");

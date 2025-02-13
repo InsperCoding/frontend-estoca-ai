@@ -86,15 +86,22 @@ export default function Page() {
         }
       );
       const produtosDetalhes = produtosResponse.data;
-      const produtosFormatados = produtosDetalhes.map((produto: any, index: number) => ({
-        Id: produto._id || produtosIds[index],
-        Img: produto.imagemb64
-          ? `data:image/png;base64,${produto.imagemb64}`
-          : "/placeholder.png",
-        Nome: produto.nome || "Produto sem nome",
-        Qntd: produtosQuantidades[index] || 0,
-        CasaId: casaSelecionada,
-      }));
+      // Use the original order from produtosIds to merge details with their quantities with explicit types
+      const produtosFormatados = produtosIds.map((prodId: string, index: number) => {
+        // Find the matching product (assume _id or id matches prodId)
+        const produto = produtosDetalhes.find(
+          (p: any) => p._id === prodId || p.id === prodId
+        );
+        return {
+          Id: prodId,
+          Img: produto && produto.imagemb64
+            ? `data:image/png;base64,${produto.imagemb64}`
+            : "/placeholder.png",
+          Nome: (produto && produto.nome) || "Produto sem nome",
+          Qntd: produtosQuantidades[index] || 0,
+          CasaId: casaSelecionada,
+        };
+      });
       setItens(produtosFormatados);
     } catch (err) {
       console.error("Erro ao buscar itens da despensa:", err);
@@ -149,7 +156,7 @@ export default function Page() {
       </div>
 
       {/* Itens da Despensa */}
-      <ul className="mt-10 ml-8 mr-8">
+      <ul className="mt-10 ml-8 mr-8 mb-20">
         {error ? (
           <p className="text-red-500">{error}</p>
         ) : loading ? (
